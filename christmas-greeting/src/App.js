@@ -295,10 +295,9 @@ function Scene() {
         minPolarAngle={Math.PI / 2.5}
         maxPolarAngle={Math.PI / 2.5}
       />
-      {/* Very dim ambient light to preserve shadows */}
+      
+      {/* Lights */}
       <ambientLight intensity={0.08} color="#ffffff" />
-
-      {/* Brighter main light */}
       <directionalLight
         position={[10, 5, 5]}
         intensity={2.5}
@@ -311,21 +310,18 @@ function Scene() {
         shadow-camera-top={10}
         shadow-camera-bottom={-10}
       />
-
-      {/* Warmer fill light */}
       <directionalLight
         position={[-5, 3, 2]}
         intensity={0.4}
         color="#ffe5bd"
       />
-
-      {/* Environment light for better reflections */}
       <hemisphereLight
         skyColor="#ffffff"
         groundColor="#000000"
         intensity={0.1}
       />
 
+      {/* Effects */}
       <Snow />
       <GlitterText />
     </>
@@ -334,12 +330,18 @@ function Scene() {
 
 export default function App() {
   return (
-    <div style={{ width: '100vw', height: '100vh', background: '#1a237e' }}>
+    <div style={{ 
+      width: '100vw', 
+      height: '100vh', 
+      background: 'linear-gradient(to bottom, #0a1128, #1a237e)',
+      overflow: 'hidden'
+    }}>
       <Suspense fallback={<div style={{ color: 'white' }}>Loading...</div>}>
         <Canvas 
-          camera={{ position: [0, 0, 5] }}
+          camera={{ position: [0, 0, 8], fov: 50 }}
           shadows
         >
+          <fog attach="fog" args={['#0a1128', 5, 15]} />
           <Scene />
         </Canvas>
       </Suspense>
