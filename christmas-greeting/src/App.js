@@ -1,6 +1,6 @@
 import { Suspense, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Text, Center, useTexture, Text3D } from '@react-three/drei';
+import { OrbitControls, Text, Center, useTexture, Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useRef, useCallback, useMemo } from 'react';
@@ -13,6 +13,7 @@ function GlitterText() {
   const [textOpacity, setTextOpacity] = useState(0);
   const [particleOpacity, setParticleOpacity] = useState(0.9);
   const materialRef = useRef();
+  const [displayedText, setDisplayedText] = useState(['']);
   
   const goldMaterial = useMemo(() => new THREE.MeshStandardMaterial({
     color: new THREE.Color('#ffd700').multiplyScalar(2.2),
@@ -111,11 +112,15 @@ function GlitterText() {
       particlesRef.current.instanceMatrix.needsUpdate = true;
     }
 
-    // Only start text animation after it's fully visible
+    // Update text animation with wavy motion
     if (textRef.current && textVisible && textOpacity >= 1) {
       const time = state.clock.elapsedTime;
-      textRef.current.position.y = Math.sin(time * 0.5) * 0.1;
-      textRef.current.rotation.y = Math.sin(time * 0.25) * 0.05;
+      // Vertical wave motion
+      textRef.current.position.y = Math.sin(time * 0.8) * 0.15;
+      // Slight horizontal wave motion
+      textRef.current.position.x = Math.sin(time * 0.5) * 0.1;
+      // Gentle rotation
+      textRef.current.rotation.y = Math.sin(time * 0.3) * 0.08;
     }
 
     if (materialRef.current) {
@@ -123,12 +128,31 @@ function GlitterText() {
     }
   });
 
-  // Split text into three lines
+  // Split text into single line
   const text = [
-    "Merry Christmas and",
-    "a Happy New Year",
-    "from Consid"
+    "Merry Christmas from Consid",
   ];
+
+  // Simplified letter-by-letter animation
+  useEffect(() => {
+    if (textVisible) {
+      let currentIndex = 0;
+      
+      const interval = setInterval(() => {
+        setDisplayedText(prev => {
+          if (currentIndex >= text[0].length) {
+            clearInterval(interval);
+            return prev;
+          }
+          
+          return [text[0].slice(0, currentIndex + 1)];
+        });
+        currentIndex++;
+      }, 100);
+      
+      return () => clearInterval(interval);
+    }
+  }, [textVisible]);
 
   return (
     <>
@@ -147,24 +171,25 @@ function GlitterText() {
       </instancedMesh>
       
       <Center ref={textRef} visible={true}>
-        {text.map((line, lineIndex) => (
-          <Text3D
-            key={lineIndex}
-            font="https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"
-            size={0.8}
-            height={0.3}
-            curveSegments={32}
-            bevelEnabled
-            bevelThickness={0.03}
-            bevelSize={0.02}
-            bevelOffset={0}
-            bevelSegments={8}
-            material={goldMaterial}
-            position={[0, 1.2 - lineIndex * 1.2, 0]}
-          >
-            {line}
-          </Text3D>
-        ))}
+        <Html transform>
+          {displayedText.map((line, lineIndex) => (
+            <div
+              key={lineIndex}
+              style={{
+                fontFamily: 'Ballet',
+                fontSize: '30px',
+                color: '#ffd700',
+                textAlign: 'center',
+                marginBottom: '15px',
+                textShadow: '0 0 10px #ffd700',
+                whiteSpace: 'nowrap',
+                opacity: textOpacity
+              }}
+            >
+              {line}
+            </div>
+          ))}
+        </Html>
       </Center>
     </>
   );
@@ -333,7 +358,7 @@ export default function App() {
     <div style={{ 
       width: '100vw', 
       height: '100vh', 
-      background: 'linear-gradient(to bottom, #0a1128, #1a237e)',
+      background: 'linear-gradient(to bottom, rgb(112, 17, 49), rgb(82, 12, 36))',
       overflow: 'hidden'
     }}>
       <Suspense fallback={<div style={{ color: 'white' }}>Loading...</div>}>
@@ -341,7 +366,7 @@ export default function App() {
           camera={{ position: [0, 0, 8], fov: 50 }}
           shadows
         >
-          <fog attach="fog" args={['#0a1128', 5, 15]} />
+          <fog attach="fog" args={['rgb(112, 17, 49)', 5, 15]} />
           <Scene />
         </Canvas>
       </Suspense>
