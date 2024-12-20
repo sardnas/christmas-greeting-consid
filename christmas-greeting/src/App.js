@@ -98,7 +98,8 @@ function GlitterText() {
         entryProgress: 0,
         acceleration: 0.01 + Math.random() * 0.015,
         formationOffset,
-        spreadFactor: 0.2 + (delayFactor * 0.2) // Later particles spread more
+        spreadFactor: 0.2 + (delayFactor * 0.2), // Later particles spread more
+        individualPhase: 'entry', // Add individual phase tracking
       });
     }
     
@@ -216,8 +217,8 @@ function GlitterText() {
       particles.forEach((particle, i) => {
         const time = state.clock.elapsedTime;
 
-        if (phase === 'entry' || (phase === 'writing' && particle.entryProgress < 1)) {
-          // Individual acceleration for each particle
+        // Check individual particle phase
+        if (particle.individualPhase === 'entry') {
           if (time * 1000 > particle.delay) {
             particle.entryProgress = Math.min(1, 
               particle.entryProgress + 0.003 + 
@@ -228,58 +229,55 @@ function GlitterText() {
             const [pathX, pathY] = calculateMPath(
               progress,
               entryPoint,
-              writingPath[0], // Use wave path start point
+              writingPath[0],
               particle
             );
             
-            // Smooth transition near the end of MM path
-            if (progress > 0.95) { // Shorter transition window
+            // Transition each particle individually
+            if (progress > 0.95) {
               const transitionProgress = (progress - 0.95) / 0.05;
               const eased = easeInOutCubic(transitionProgress);
               
-              // Calculate the wave starting position maintaining formation
-              const waveStartIndex = 0;
+              // Initialize wave properties
               const formationScale = 0.5;
-              
-              // Get particle's position in the wave formation
               const waveOffset = {
                 x: particle.formationOffset.x * formationScale,
                 y: particle.formationOffset.y * formationScale
               };
               
-              // Blend MM path end with wave path start
-              particle.position[0] = pathX + (writingPath[waveStartIndex][0] + waveOffset.x - pathX) * eased;
-              particle.position[1] = pathY + (writingPath[waveStartIndex][1] + waveOffset.y - pathY) * eased;
+              // Blend to wave start position
+              particle.position[0] = pathX + (writingPath[0][0] + waveOffset.x - pathX) * eased;
+              particle.position[1] = pathY + (writingPath[0][1] + waveOffset.y - pathY) * eased;
               particle.position[2] = entryPoint[2];
 
-              // Pre-initialize wave phase properties for smooth transition
-              particle.pathIndex = 0;
-              particle.waveOffset = waveOffset;
+              // When fully transitioned, switch to writing phase
+              if (transitionProgress >= 1) {
+                particle.individualPhase = 'writing';
+                particle.pathIndex = 0;
+                particle.waveOffset = waveOffset;
+              }
             } else {
               particle.position[0] = pathX;
               particle.position[1] = pathY;
               particle.position[2] = entryPoint[2];
             }
           }
-        } else if (phase === 'writing') {
-          // Get base wave position
+        } else if (particle.individualPhase === 'writing') {
+          // Existing wave animation logic
           const baseIndex = Math.floor(particle.pathIndex);
           const nextIndex = (baseIndex + 1) % writingPath.length;
           const t = particle.pathIndex - baseIndex;
           
-          // Interpolate between wave points
           const currentPoint = writingPath[baseIndex];
           const nextPoint = writingPath[nextIndex];
           const x = currentPoint[0] + (nextPoint[0] - currentPoint[0]) * t;
           const y = currentPoint[1] + (nextPoint[1] - currentPoint[1]) * t;
           
-          // Add formation offset and flow
           const flowOffset = Math.sin(time * 2 + particle.formationOffset.angle) * 0.1;
           particle.position[0] = x + particle.waveOffset.x + flowOffset;
           particle.position[1] = y + particle.waveOffset.y;
           particle.position[2] = currentPoint[2];
           
-          // Update path index with smooth looping
           particle.pathIndex += particle.pathSpeed;
           if (particle.pathIndex >= writingPath.length) {
             particle.pathIndex = 0;
